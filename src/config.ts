@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  TOKEN_BROKER_URL: z.string().url(),
+  TOKEN_BROKER_URL: z.string().url().optional(),
   DEFAULT_USER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   SAFETY_WINDOW_MINUTES: z.coerce.number().int().nonnegative().default(120)
 });

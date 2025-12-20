@@ -44,16 +44,22 @@ app.get("/token", async (req, res) => {
   try {
     const params = new URLSearchParams({
       grant_type: "refresh_token",
-      refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET
+      refresh_token: refreshToken
     });
+
+    // Spotify requires client credentials in Basic Auth header
+    const authHeader = Buffer.from(
+      `${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`
+    ).toString("base64");
 
     const response = await axios.post(
       "https://accounts.spotify.com/api/token",
       params.toString(),
       {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${authHeader}`
+        }
       }
     );
 
@@ -71,7 +77,18 @@ app.get("/token", async (req, res) => {
       token_type: body.token_type
     });
   } catch (error) {
-    logger.error("Failed to refresh Spotify token", error, { uid });
+    // Log detailed error information from Spotify API
+    if (axios.isAxiosError(error) && error.response) {
+      logger.error("Failed to refresh Spotify token", {
+        uid,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+    } else {
+      logger.error("Failed to refresh Spotify token", error, { uid });
+    }
     res.status(502).json({ error: "Failed to refresh token" });
   }
 });

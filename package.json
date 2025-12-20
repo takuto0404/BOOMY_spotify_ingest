@@ -8,7 +8,7 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit",
-    "token-broker": "tsx src/token-broker.ts"
+    "token-broker": "tsx -r dotenv/config src/token-broker.ts"
   },
   "engines": {
     "node": "^20.0.0"
@@ -16,8 +16,9 @@
   "dependencies": {
     "axios": "^1.6.8",
     "date-fns": "^3.6.0",
-    "firebase-admin": "^12.1.0",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
     "p-queue": "^8.0.1",
     "p-retry": "^6.2.0",
     "zod": "^3.22.4"
