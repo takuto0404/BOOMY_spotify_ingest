@@ -1,0 +1,1 @@
+After making changes, run npm run lint and any relevant npm run dev/build invocations if feasible. Verify Firestore/token broker env vars locally where possible. Summarize key changes and mention verification status in final response.

@@ -1,0 +1,1 @@
+Node.js 20 + TypeScript worker that ingests each users Spotify recently-played feed into Firestore for 90-day retention. Includes Firestore BulkWriter upserts, ingestion metadata tracking, token broker integration, and concurrency/ retry controls.

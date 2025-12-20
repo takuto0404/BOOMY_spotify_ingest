@@ -1,0 +1,1 @@
+TypeScript (ES2022, NodeNext modules) with strict compiler settings. Source organized under src/ (config, lib, services, jobs). Uses structured JSON logging, zod for env validation, and encourages idempotent Firestore writes via BulkWriter with merge. No AGENTS instructions present.

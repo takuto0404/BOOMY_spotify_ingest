@@ -1,0 +1,31 @@
+{
+  "name": "spotify-listen-ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --target node20 --dts",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "tsc --noEmit",
+    "token-broker": "tsx src/token-broker.ts"
+  },
+  "engines": {
+    "node": "^20.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "date-fns": "^3.6.0",
+    "firebase-admin": "^12.1.0",
+    "express": "^4.19.2",
+    "p-queue": "^8.0.1",
+    "p-retry": "^6.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "tsup": "^7.2.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5"
+  }
+}
