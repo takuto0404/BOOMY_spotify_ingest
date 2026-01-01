@@ -1,4 +1,4 @@
-import { applicationDefault, initializeApp } from "firebase-admin/app";
+import { applicationDefault, initializeApp, getApps } from "firebase-admin/app";
 import {
   BulkWriter,
   FieldValue,
@@ -23,13 +23,17 @@ const META_COLLECTION = "meta";
 const META_DOC_ID = "ingest";
 
 const ensureInitialized = () => {
-  if (!firestore) {
+  if (!firestore && !getApps().length) {
     initializeApp({
       credential: applicationDefault()
     });
     firestore = getFirestore();
     writer = firestore.bulkWriter({ throttling: true });
     logger.info("Initialized Firestore Admin SDK");
+  } else if (!firestore) {
+    firestore = getFirestore();
+    writer = firestore.bulkWriter({ throttling: true });
+    logger.info("Retrieved existing Firestore Admin SDK instance");
   }
 
   return { firestore, writer };

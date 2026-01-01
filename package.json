@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --target node20 --dts",
-    "dev": "tsx src/index.ts",
+    "dev": "tsx -r dotenv/config src/index.ts",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit",
     "token-broker": "tsx -r dotenv/config src/token-broker.ts"
