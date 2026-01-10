@@ -41,9 +41,9 @@ const ensureInitialized = () => {
 
 export const getUsersForIngestion = async (): Promise<UserIngestTarget[]> => {
   const { firestore: db } = ensureInitialized();
-  const snapshot = await db.collection(USERS_COLLECTION).get();
-
-  return snapshot.docs.map((doc) => ({ uid: doc.id }));
+  const allDocs = await db.collection(USERS_COLLECTION).listDocuments();
+  logger.info("Users for ingestion", { count: allDocs.length });
+  return allDocs.map(doc => ({ uid: doc.id }));
 };
 
 export const getIngestMetadata = async (
