@@ -79,6 +79,13 @@ const processSingleUser = async (user: UserIngestTarget) => {
   const afterCursor = Math.max(0, cursorBase - config.safetyWindowMs);
 
   const accessToken = await fetchSpotifyAccessToken(uid);
+
+  // Skip users who haven't authenticated with Spotify yet
+  if (!accessToken) {
+    logger.info("No access token available, skipping user", { uid });
+    return { processed: 0, newestPlayedAt: afterCursor };
+  }
+
   const items = await fetchRecentlyPlayed({
     accessToken,
     after: afterCursor

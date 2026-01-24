@@ -7,12 +7,21 @@ const tokenResponseSchema = z.object({
   access_token: z.string()
 });
 
-export const fetchSpotifyAccessToken = async (uid: string): Promise<string> => {
-  const response = await axios.get(config.tokenBrokerUrl, {
-    params: { uid },
-    timeout: 10_000
-  });
+export const fetchSpotifyAccessToken = async (uid: string): Promise<string | null> => {
+  try {
+    const response = await axios.get(config.tokenBrokerUrl, {
+      params: { uid },
+      timeout: 10_000
+    });
 
-  const parsed = tokenResponseSchema.parse(response.data);
-  return parsed.access_token;
+    const parsed = tokenResponseSchema.parse(response.data);
+    return parsed.access_token;
+  } catch (error) {
+    // 404 means user hasn't authenticated with Spotify yet
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    // Re-throw other errors (network issues, 502, etc.)
+    throw error;
+  }
 };
