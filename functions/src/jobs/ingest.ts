@@ -1,7 +1,7 @@
 import pRetry from "p-retry";
 import { addDays } from "date-fns";
 
-import { config } from "../config.js";
+import { getConfig } from "../config.js";
 import { createUserQueue } from "../lib/rate-limit.js";
 import { logger } from "../lib/logging.js";
 import {
@@ -28,6 +28,7 @@ export const runHourlyIngest = async (): Promise<IngestStats> => {
 
   logger.info("Starting ingest run", { userCount: users.length });
 
+  const config = getConfig();
   const queue = createUserQueue(config.userConcurrency);
 
   const userJobs = users.map((user) =>
@@ -76,6 +77,7 @@ export const processSingleUser = async (user: UserIngestTarget) => {
   const { uid } = user;
   const meta = await getIngestMetadata(uid);
   const cursorBase = meta.lastFetchedAt ?? Date.now();
+  const config = getConfig();
   const afterCursor = Math.max(0, cursorBase - config.safetyWindowMs);
 
   const accessToken = await fetchSpotifyAccessToken(uid);

@@ -1,156 +1,124 @@
-# Spotify Recently Played Ingest Job
+# Spotify History Ingest for Firebase
 
-各ユーザーの Spotify 「最近再生した曲」を毎時 Firestore に蓄積し、90日間分の履歴を保持する Node.js ワーカーです。Spotify の 50 件制限を上回る履歴を安全かつ冪等に永続化することを目的としています。
+Spotify の「最近再生した曲 (Recently Played)」履歴を定期的に取得し、Firestore に永続化するための Cloud Functions システムです。
+Spotify API の制限（直近50件まで）を超えて、長期間のリスニング履歴を蓄積することを目的としています。
 
-## 特徴
+## システム概要
 
-- Spotify の `after` カーソルを使ったインクリメンタル取得
-- `expireAt` フィールド付きの Firestore BulkWriter upsert（TTL 対応）
-- ユーザーごとの取り込みメタデータ `users/{uid}/meta/ingest`
-- `p-queue` による並列数制御、`p-retry` による再試行、構造化ログ
-- GitHub Actions / Cloud Run どちらにも展開しやすいスケルトン構成
+本システムは **Firebase Cloud Functions** 上で動作し、以下のコンポーネントで構成されています。
 
-## ディレクトリ構成
-
+```mermaid
+graph TD
+    Scheduler[Cloud Scheduler] -->|毎時実行| Ingest[scheduledIngest]
+    User[Client App] -->|手動実行| Trigger[triggerUserIngest]
+    
+    subgraph Cloud Functions
+        Ingest --> Logic[共通インジェストロジック]
+        Trigger --> Logic
+        Logic -->|トークン取得| Broker[ingestTokenBroker]
+    end
+    
+    Broker -->|Refresh Token| Firestore[(Firestore)]
+    Broker -->|Access Token| Spotify[Spotify API]
+    Logic -->|再生履歴取得| Spotify
+    Logic -->|データ保存| Firestore
 ```
-src/
-  index.ts            # Firestore 初期化 & ジョブ実行のエントリポイント
-  token-broker.ts     # リフレッシュトークン→アクセストークン変換用 Express ハンドラ
-  jobs/ingest.ts      # 1 回の取り込みサイクルをオーケストレーション
-  services/
-    firestore.ts      # Firestore へのアクセス, BulkWriter ヘルパー, メタデータ
-    spotify.ts        # 最近再生 API のページ取得
-    token.ts          # トークンブローカー呼び出し
-  lib/
-    rate-limit.ts     # p-queue 設定ユーティリティ
-    logging.ts        # 構造化ログラッパー
-  types.ts            # リッスンデータや Spotify レスポンスの型
-```
+
+## 主な機能
+
+*   **完全自動化**: 1時間ごとに全ユーザーのデータを自動収集（Cloud Scheduler）。
+*   **インクリメンタル取得**: 前回取得した日時（カーソル）以降のデータのみを取得し、APIコールを最小化。
+*   **安全なトークン管理**: リフレッシュトークンは Firestore に保存し、内部 Token Broker 経由でアクセストークンを取得。
+*   **堅牢なエラー処理**: `p-queue` による並列数制御と `p-retry` による再試行ロジックを実装。
+*   **データ構造**: TTL (`expireAt`) 対応のデータ形式で Firestore に保存。
 
 ## 必要要件
 
-- Node.js 20 以上
-- `expireAt` に TTL が設定された Firestore プロジェクト
-- Spotify リフレッシュトークンをアクセストークンに交換するトークンブローカー（本リポジトリに同梱された Express 実装を利用可能）
+*   Node.js 20以上
+*   Firebase プロジェクト (Blazeプラン推奨)
+*   Spotify Developer App (Client ID / Secret)
 
-## 環境変数
+## セットアップ手順
 
-`.env.example` を `.env` にコピーし、下記を設定してください。
+### 1. プロジェクトの準備
+
+```bash
+# 依存関係のインストール
+npm install
+
+# Firebaseへのログイン
+firebase login
+```
+
+### 2. 環境変数の設定
+
+`functions/.env` ファイルを作成し、以下の変数を設定してください（`functions/.env.example` を参考にしてください）。
 
 | 変数名 | 説明 |
-| --- | --- |
-| `TOKEN_BROKER_URL` | `uid` を渡すとアクセストークンを返すエンドポイント URL |
-| `DEFAULT_USER_CONCURRENCY` | ユーザー並列数（デフォルト 5） |
-| `SAFETY_WINDOW_MINUTES` | `lastFetchedAt` から巻き戻す安全マージン（分） |
-| `GOOGLE_APPLICATION_CREDENTIALS` | (ローカル) Firestore 用サービスアカウント JSON のパス |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | トークンブローカーが使用する Spotify アプリ資格情報 |
-| `SPOTIFY_REFRESH_TOKENS_JSON` | `{ "uid": "refresh_token" }` 形式の JSON 文字列 |
-| `TOKEN_BROKER_PORT` | ローカルブローカーのポート（デフォルト 3000） |
+|---|---|
+| `TOKEN_BROKER_URL` | トークン発行関数のURL（デプロイ後に確定しますが、通常は `https://[region]-[project].cloudfunctions.net/ingestTokenBroker`） |
+| `SPOTIFY_CLIENT_ID` | Spotify Developer Dashboard で取得した Client ID |
+| `SPOTIFY_CLIENT_SECRET` | Spotify Developer Dashboard で取得した Client Secret |
+| `DEFAULT_USER_CONCURRENCY` | 同時に処理するユーザー数（デフォルト: 5） |
+| `SAFETY_WINDOW_MINUTES` | 取得漏れを防ぐための安全マージン（分）（デフォルト: 120） |
 
-Cloud Run などにデプロイする際は Workload Identity を使い、秘密鍵ファイルを配置しない運用がおすすめです。
+### 3. デプロイ
 
-## 利用可能な npm スクリプト
-
-## 利用可能な npm スクリプト
-- `npm run deploy` – Cloud Functions をデプロイ
-- `npm run serve:functions` – ローカルエミュレータで関数を実行
-- `npm run lint` – `tsc --noEmit` で型チェック
-
-
-
-## 全体フロー
-
-1. Firebase Admin SDK と BulkWriter を初期化。
-2. 取り込み対象ユーザーを列挙（現状はダミー実装）。
-3. 各ユーザーについて（p-queue で並列制御）:
-   - 取り込みメタデータを読み、安全マージン付きで `after` カーソルを算出。
-   - トークンブローカーからアクセストークンを取得。
-   - Spotify 最近再生 API をページングし、データがなくなるまで取得。
-   - `users/{uid}/listens/{playedAtMs}_{trackId}` に必要最小限のスナップショットを upsert。
-   - 最新 `playedAtMs` や処理件数、エラーをメタドキュメントに書き戻し。
-4. 処理ユーザー数、件数、最新カーソル、エラー数などを構造化ログで出力。
-
-## Cloud Functions デプロイ
-
-このプロジェクトは Cloud Functions + Cloud Scheduler による定期実行にも対応しています。
-
-### セットアップ
-
-1. **Firebase プロジェクトの初期化**:
-   ```bash
-   firebase login
-   firebase init
-   # Functionsを選択し、既存のプロジェクトを使用
-   ```
-
-2. **環境変数の設定**:
-   ```bash
-   # functions/.env ファイルを作成
-   cp functions/.env.example functions/.env
-   # 必要な環境変数を設定
-   ```
-
-3. **ビルドとデプロイ**:
-   ```bash
-   npm run deploy
-   ```
-
-### 利用可能な関数
-
-#### `scheduledIngest`
-- **トリガー**: Cloud Scheduler (1時間ごと)
-- **タイムゾーン**: Asia/Tokyo
-- **機能**: 全ユーザーのSpotifyインジェストを自動実行
-- **タイムアウト**: 9分
-- **メモリ**: 512MB
-
-デプロイ後、Google Cloud Console の Cloud Scheduler でスケジュールを確認できます。
-
-#### `triggerUserIngest`
-- **トリガー**: 呼び出し可能 HTTPS 関数
-- **認証**: 必須(Firebase Authentication)
-- **機能**: 認証済みユーザーが自分のデータを手動でインジェスト
-- **タイムアウト**: 60秒
-- **メモリ**: 256MB
-
-**クライアントからの呼び出し例**:
-```typescript
-import { getFunctions, httpsCallable } from 'firebase/functions';
-
-const functions = getFunctions();
-const triggerIngest = httpsCallable(functions, 'triggerUserIngest');
-
-// 自分のデータをインジェスト
-const result = await triggerIngest();
-console.log(result.data); // { success: true, message: "...", processed: 10 }
-```
-
-### ログの確認
+以下のコマンドでビルドとデプロイを一括実行します。
 
 ```bash
-# リアルタイムログ
-firebase functions:log
-
-# 特定の関数のログ
-firebase functions:log --only scheduledIngest
+npm run deploy
 ```
 
-### ローカルテスト
+> **Note**: デプロイ時に `.env` ファイルも自動的にアップロードされ、関数内で読み込まれます。
+
+### 4. ユーザーデータの登録
+
+インジェスト対象となるユーザーには、Firestore にリフレッシュトークンを設定する必要があります。
+
+**パス**: `/users/{uid}/tokens/spotify`
+
+```json
+{
+  "refresh_token": "YOUR_REFRESH_TOKEN"
+}
+```
+
+## 利用可能な関数
+
+| 関数名 | トリガー | 役割 |
+|---|---|---|
+| `scheduledIngest` | Cloud Scheduler (毎時) | 全ユーザーのインジェストを定期実行 |
+| `triggerUserIngest` | HTTPS Callable | クライアントから特定のユーザーのインジェストを手動実行（要認証） |
+| `ingestTokenBroker` | HTTPS Request | 内部利用: Firestoreのリフレッシュトークンをアクセストークンに変換 |
+
+## 開発・テスト
+
+### ローカルエミュレータ
+
+ローカル環境で関数をテストするには以下を実行します。
 
 ```bash
-# エミュレータで実行
 npm run serve:functions
-
-# 別のターミナルで関数を呼び出し
-firebase functions:shell
-> triggerUserIngest({ auth: { uid: 'test-user-id' } })
 ```
 
-## 次のステップ
+別のターミナルからシェルで関数を呼び出してテストできます。
 
-- Firestore 上でのユーザー列挙ロジック(クエリやインデックス)を実装
-- GitHub Actions の cron による定期実行設定(Cloud Functions の代替として)
-- エラー検知や通知の監視基盤を整備
-- トークンブローカーを Cloud Run / Cloud Functions にデプロイし、`TOKEN_BROKER_URL` を更新
+```bash
+firebase functions:shell
+# 手動実行のテスト
+> triggerUserIngest({ auth: { uid: 'test-user-uid' } })
+```
 
-このリポジトリは上記要件を段階的に満たせるようスケルトンとして構築されています。必要に応じて各モジュールを拡張し、本番運用へ向けた設定と検証を進めてください。
+### ディレクトリ構成
+
+ソースコードは全て `functions/src` に集約されています。
+
+*   `functions/src/index.ts`: エントリーポイント
+*   `functions/src/jobs/`: インジェストのメインロジック
+*   `functions/src/services/`: Spotify API / Firestore / Token 関連サービス
+*   `functions/src/lib/`: ユーティリティ（ロガー、レートリミット）
+
+## ライセンス
+
+[MIT](LICENSE)

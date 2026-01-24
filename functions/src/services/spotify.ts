@@ -1,7 +1,7 @@
 import axios from "axios";
 
 import type { SpotifyRecentlyPlayedItem } from "../types.js";
-import { config } from "../config.js";
+import { getConfig } from "../config.js";
 
 const RECENTLY_PLAYED_ENDPOINT =
   "https://api.spotify.com/v1/me/player/recently-played";
@@ -21,7 +21,7 @@ const spotifyClient = axios.create({
 
 const fetchPage = async ({ accessToken, after, before }: PageArgs) => {
   const url = new URL(RECENTLY_PLAYED_ENDPOINT);
-  url.searchParams.set("limit", String(config.spotifyPageLimit));
+  url.searchParams.set("limit", String(getConfig().spotifyPageLimit));
   if (after) {
     url.searchParams.set("after", String(after));
   }
@@ -65,7 +65,7 @@ export const fetchRecentlyPlayed = async (
 
     results.push(...filtered);
 
-    if (page.items.length < config.spotifyPageLimit) {
+    if (page.items.length < getConfig().spotifyPageLimit) {
       break;
     }
 

@@ -1,11 +1,7 @@
 import * as functions from "firebase-functions";
-import { initializeApp } from "firebase-admin/app";
 import { processSingleUser } from "./jobs/ingest.js";
 import { logger as sharedLogger } from "./lib/logging.js";
 import type { UserIngestTarget } from "./types.js";
-
-// Initialize Firebase Admin
-initializeApp();
 
 /**
  * 呼び出し可能関数: 特定のユーザーのSpotifyインジェストを手動実行

@@ -1,3 +1,8 @@
+import { initializeApp } from "firebase-admin/app";
+import "dotenv/config";
+
+initializeApp();
+
 /**
  * Cloud Functions エントリーポイント
  * 

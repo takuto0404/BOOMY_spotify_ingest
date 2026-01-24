@@ -1,7 +1,7 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { config } from "../config.js";
+import { getConfig } from "../config.js";
 
 const tokenResponseSchema = z.object({
   access_token: z.string()
@@ -9,7 +9,7 @@ const tokenResponseSchema = z.object({
 
 export const fetchSpotifyAccessToken = async (uid: string): Promise<string | null> => {
   try {
-    const response = await axios.get(config.tokenBrokerUrl, {
+    const response = await axios.get(getConfig().tokenBrokerUrl, {
       params: { uid },
       timeout: 10_000
     });

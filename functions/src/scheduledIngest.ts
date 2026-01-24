@@ -1,10 +1,6 @@
 import * as functions from "firebase-functions";
-import { initializeApp } from "firebase-admin/app";
 import { runHourlyIngest } from "./jobs/ingest.js";
 import { logger as sharedLogger } from "./lib/logging.js";
-
-// Initialize Firebase Admin
-initializeApp();
 
 /**
  * 定期実行関数: 1時間ごとに全ユーザーのSpotifyインジェストを実行
