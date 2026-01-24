@@ -4,11 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --target node20 --dts",
-    "dev": "tsx -r dotenv/config src/index.ts",
-    "start": "node dist/index.js",
+    "build:functions": "tsc --project functions/tsconfig.json && cp package.json package-lock.json functions/lib/ && cp -r node_modules functions/lib/",
     "lint": "tsc --noEmit",
-    "token-broker": "tsx -r dotenv/config src/token-broker.ts"
+    "deploy": "npm run build:functions && firebase deploy --only functions",
+    "serve:functions": "npm run build:functions && firebase emulators:start --only functions"
   },
   "engines": {
     "node": "^20.0.0"
@@ -19,6 +18,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.1.1",
     "p-queue": "^8.0.1",
     "p-retry": "^6.2.0",
     "zod": "^3.22.4"

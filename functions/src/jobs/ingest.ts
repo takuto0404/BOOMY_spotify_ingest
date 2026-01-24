@@ -72,7 +72,7 @@ export const runHourlyIngest = async (): Promise<IngestStats> => {
   return stats;
 };
 
-const processSingleUser = async (user: UserIngestTarget) => {
+export const processSingleUser = async (user: UserIngestTarget) => {
   const { uid } = user;
   const meta = await getIngestMetadata(uid);
   const cursorBase = meta.lastFetchedAt ?? Date.now();
