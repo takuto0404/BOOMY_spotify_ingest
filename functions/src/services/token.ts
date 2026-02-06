@@ -21,6 +21,16 @@ export const fetchSpotifyAccessToken = async (uid: string): Promise<string | nul
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
+    // Log detailed error information for debugging
+    if (axios.isAxiosError(error)) {
+      console.error("Token fetch failed:", {
+        uid,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: getConfig().tokenBrokerUrl
+      });
+    }
     // Re-throw other errors (network issues, 502, etc.)
     throw error;
   }
