@@ -9,14 +9,21 @@ import {
   getIngestMetadata,
   getUsersForIngestion,
   updateIngestMetadata,
-  upsertListens
+  upsertListens,
+  upsertTracks
 } from "../services/firestore.js";
 import { fetchSpotifyAccessToken } from "../services/token.js";
-import { fetchRecentlyPlayed } from "../services/spotify.js";
+import {
+  fetchAudioFeaturesByIds,
+  fetchRecentlyPlayed
+} from "../services/spotify.js";
 import type {
   IngestStats,
   ListenSnapshot,
+  SpotifyAudioFeatures,
+  SpotifyAlbumImage,
   SpotifyRecentlyPlayedItem,
+  TrackSnapshot,
   UserIngestTarget
 } from "../types.js";
 
@@ -93,10 +100,19 @@ export const processSingleUser = async (user: UserIngestTarget) => {
     after: afterCursor
   });
 
+  const trackIds = items.map((item) => item.track.id);
+  const audioFeaturesById = await fetchAudioFeaturesByIds({
+    accessToken,
+    trackIds
+  });
+
   const snapshots = items
     .map((item) => toListenSnapshot(uid, item))
     .sort((a, b) => a.playedAtEpochMs - b.playedAtEpochMs);
 
+  const tracks = buildTrackSnapshots(items, audioFeaturesById);
+
+  await upsertTracks(tracks);
   await upsertListens(uid, snapshots);
 
   const newestPlayedAt = snapshots.at(-1)?.playedAtEpochMs ?? afterCursor;
@@ -132,4 +148,58 @@ const toListenSnapshot = (
     playedAtEpochMs: playedAt.getTime(),
     expireAt: addDays(playedAt, TTL_DAYS)
   };
+};
+
+const buildTrackSnapshots = (
+  items: SpotifyRecentlyPlayedItem[],
+  audioFeaturesById: Map<string, SpotifyAudioFeatures>
+): TrackSnapshot[] => {
+  const map = new Map<string, TrackSnapshot>();
+
+  items.forEach((item) => {
+    const track = item.track;
+    if (map.has(track.id)) return;
+
+    const audioFeatures = audioFeaturesById.get(track.id) ?? null;
+
+    map.set(track.id, {
+      trackId: track.id,
+      trackName: track.name,
+      artistNames: track.artists.map((artist) => artist.name),
+      albumName: track.album.name,
+      durationMs: track.duration_ms,
+      albumImages: toAlbumImages(track.album.images),
+      audioFeatures: audioFeatures
+        ? {
+            danceability: audioFeatures.danceability,
+            energy: audioFeatures.energy,
+            valence: audioFeatures.valence,
+            tempo: audioFeatures.tempo,
+            key: audioFeatures.key,
+            mode: audioFeatures.mode,
+            acousticness: audioFeatures.acousticness,
+            instrumentalness: audioFeatures.instrumentalness,
+            speechiness: audioFeatures.speechiness,
+            liveness: audioFeatures.liveness,
+            loudness: audioFeatures.loudness
+          }
+        : null
+    });
+  });
+
+  return Array.from(map.values());
+};
+
+const toAlbumImages = (images?: SpotifyAlbumImage[]) => {
+  if (!images?.length) return null;
+
+  const sorted = [...images].sort(
+    (a, b) => (b.width ?? 0) - (a.width ?? 0)
+  );
+
+  const large = sorted[0]?.url ?? null;
+  const medium = sorted[1]?.url ?? null;
+  const small = sorted.at(-1)?.url ?? null;
+
+  return { small, medium, large };
 };

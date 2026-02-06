@@ -10,6 +10,7 @@ import {
 import type {
   IngestMetadata,
   ListenSnapshot,
+  TrackSnapshot,
   UserIngestTarget
 } from "../types.js";
 import { logger } from "../lib/logging.js";
@@ -19,6 +20,7 @@ let writer: BulkWriter;
 
 const USERS_COLLECTION = "users";
 const LISTENS_SUBCOLLECTION = "listens";
+const TRACKS_COLLECTION = "tracks";
 const META_COLLECTION = "meta";
 const META_DOC_ID = "ingest";
 
@@ -103,6 +105,31 @@ export const upsertListens = async (uid: string, listens: ListenSnapshot[]) => {
         playedAt: Timestamp.fromMillis(listen.playedAtEpochMs),
         playedAtEpochMs: listen.playedAtEpochMs,
         expireAt: Timestamp.fromDate(listen.expireAt)
+      },
+      { merge: true }
+    );
+  });
+};
+
+export const upsertTracks = async (tracks: TrackSnapshot[]) => {
+  if (!tracks.length) return;
+
+  const { firestore: db, writer } = ensureInitialized();
+  const baseRef = db.collection(TRACKS_COLLECTION);
+
+  tracks.forEach((track) => {
+    const docRef = baseRef.doc(track.trackId);
+    writer.set(
+      docRef,
+      {
+        trackId: track.trackId,
+        trackName: track.trackName,
+        artistNames: track.artistNames,
+        albumName: track.albumName,
+        durationMs: track.durationMs,
+        albumImages: track.albumImages,
+        audioFeatures: track.audioFeatures,
+        updatedAt: FieldValue.serverTimestamp()
       },
       { merge: true }
     );

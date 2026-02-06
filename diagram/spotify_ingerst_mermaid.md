@@ -2,58 +2,64 @@
 classDiagram
     class jobs.ingest{
         -TLL_DAYS
-        -processSingleUser()
-        -toListenSnapshot()
         +runHourlyIngest()
+        +processSingleUser()
+        -toListenSnapshot()
+        -buildTrackSnapshots()
+        -toAlbumImages()
     }
-
     class lib.rate-limit{
         +createUserQueue()
     }
-
     class services.firestore{
-        -firestore
-        -writer
+        -USERS_COLLECTION
         -LISTENS_SUBCOLLECTION
+        -TRACKS_COLLECTION
         -META_COLLECTION
         -META_DOC_ID
         -ensureInitialized()
-        +getUsersForIngestions()
+        +getUsersForIngestion()
         +getIngestMetadata()
         +updateIngestMetadata()
-        +upsertListens()
+        +upsertListens
+        +upsertTracks()
         +flushWrites()
     }
-
     class services.spotify{
         -RECENTLY_PLAYED_ENDPOINT
+        -AUDIO_FEATURES_ENDPOINT
         -spotifyClient
         -fetchPage()
         +fetchRecentlyPlayed()
+        -chunk()
+        +fetchAudioFeaturesByIds()
     }
-
     class services.token{
         -tokenResponseSchema
         +fetchSpotifyAccessToken()
     }
-
-    class index{
-        -main()
-    }
-
-    class token-broker{
+    class config{
         -envSchema
-        -env
-        -refreshTokenSchema
-        -refreshTokenMap
-        -app
+        -configCache
+        +getConfig()
+    }
+    class ingestTokenBroker{
+        +ingestTokenBroker()
+    }
+    class scheduledIngest{
+        +scheduledIngest()
+    }
+    class triggerUserIngest{
+        +triggerUserIngest()
     }
 
-    services.firestore <|-- jobs.ingest
-    lib.rate-limit <|-- jobs.ingest
-    services.token <|-- jobs.ingest
-    services.spotify <|-- jobs.ingest
-
-    jobs.ingest <|-- index
-
+    jobs.ingest --> config
+    jobs.ingest --> lib.rate-limit
+    jobs.ingest --> services.firestore
+    jobs.ingest --> services.token
+    jobs.ingest --> services.spotify
+    services.spotify --> config
+    scheduledIngest --> jobs.ingest
+    ingestTokenBroker --> jobs.ingest
+    triggerUserIngest --> jobs.ingest
 ```
