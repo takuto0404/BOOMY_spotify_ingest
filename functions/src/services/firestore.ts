@@ -128,7 +128,6 @@ export const upsertTracks = async (tracks: TrackSnapshot[]) => {
         albumName: track.albumName,
         durationMs: track.durationMs,
         albumImages: track.albumImages,
-        audioFeatures: track.audioFeatures,
         updatedAt: FieldValue.serverTimestamp()
       },
       { merge: true }

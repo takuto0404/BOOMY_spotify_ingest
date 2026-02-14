@@ -13,14 +13,10 @@ import {
   upsertTracks
 } from "../services/firestore.js";
 import { fetchSpotifyAccessToken } from "../services/token.js";
-import {
-  fetchAudioFeaturesByIds,
-  fetchRecentlyPlayed
-} from "../services/spotify.js";
+import { fetchRecentlyPlayed } from "../services/spotify.js";
 import type {
   IngestStats,
   ListenSnapshot,
-  SpotifyAudioFeatures,
   SpotifyAlbumImage,
   SpotifyRecentlyPlayedItem,
   TrackSnapshot,
@@ -100,17 +96,18 @@ export const processSingleUser = async (user: UserIngestTarget) => {
     after: afterCursor
   });
 
-  const trackIds = items.map((item) => item.track.id);
-  const audioFeaturesById = await fetchAudioFeaturesByIds({
-    accessToken,
-    trackIds
+  logger.info("Fetched recently played", {
+    uid,
+    afterCursor,
+    safetyWindowMs: config.safetyWindowMs,
+    itemCount: items.length
   });
 
   const snapshots = items
     .map((item) => toListenSnapshot(uid, item))
     .sort((a, b) => a.playedAtEpochMs - b.playedAtEpochMs);
 
-  const tracks = buildTrackSnapshots(items, audioFeaturesById);
+  const tracks = buildTrackSnapshots(items);
 
   await upsertTracks(tracks);
   await upsertListens(uid, snapshots);
@@ -151,8 +148,7 @@ const toListenSnapshot = (
 };
 
 const buildTrackSnapshots = (
-  items: SpotifyRecentlyPlayedItem[],
-  audioFeaturesById: Map<string, SpotifyAudioFeatures>
+  items: SpotifyRecentlyPlayedItem[]
 ): TrackSnapshot[] => {
   const map = new Map<string, TrackSnapshot>();
 
@@ -160,30 +156,13 @@ const buildTrackSnapshots = (
     const track = item.track;
     if (map.has(track.id)) return;
 
-    const audioFeatures = audioFeaturesById.get(track.id) ?? null;
-
     map.set(track.id, {
       trackId: track.id,
       trackName: track.name,
       artistNames: track.artists.map((artist) => artist.name),
       albumName: track.album.name,
       durationMs: track.duration_ms,
-      albumImages: toAlbumImages(track.album.images),
-      audioFeatures: audioFeatures
-        ? {
-            danceability: audioFeatures.danceability,
-            energy: audioFeatures.energy,
-            valence: audioFeatures.valence,
-            tempo: audioFeatures.tempo,
-            key: audioFeatures.key,
-            mode: audioFeatures.mode,
-            acousticness: audioFeatures.acousticness,
-            instrumentalness: audioFeatures.instrumentalness,
-            speechiness: audioFeatures.speechiness,
-            liveness: audioFeatures.liveness,
-            loudness: audioFeatures.loudness
-          }
-        : null
+      albumImages: toAlbumImages(track.album.images)
     });
   });
 

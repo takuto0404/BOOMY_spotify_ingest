@@ -17,20 +17,6 @@ export interface AlbumImages {
   large: string | null;
 }
 
-export interface AudioFeatures {
-  danceability: number;
-  energy: number;
-  valence: number;
-  tempo: number;
-  key: number;
-  mode: number;
-  acousticness: number;
-  instrumentalness: number;
-  speechiness: number;
-  liveness: number;
-  loudness: number;
-}
-
 export interface TrackSnapshot {
   trackId: string;
   trackName: string;
@@ -38,7 +24,6 @@ export interface TrackSnapshot {
   albumName: string;
   durationMs: number;
   albumImages: AlbumImages | null;
-  audioFeatures: AudioFeatures | null;
 }
 
 export interface IngestMetadata {
@@ -75,21 +60,6 @@ export interface SpotifyTrack {
   duration_ms: number;
   album: SpotifyAlbum;
   artists: SpotifyArtist[];
-}
-
-export interface SpotifyAudioFeatures {
-  id: string;
-  danceability: number;
-  energy: number;
-  valence: number;
-  tempo: number;
-  key: number;
-  mode: number;
-  acousticness: number;
-  instrumentalness: number;
-  speechiness: number;
-  liveness: number;
-  loudness: number;
 }
 
 export interface SpotifyRecentlyPlayedItem {
