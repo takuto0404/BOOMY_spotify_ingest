@@ -9,17 +9,14 @@ import {
   getIngestMetadata,
   getUsersForIngestion,
   updateIngestMetadata,
-  upsertListens,
-  upsertTracks
+  upsertListens
 } from "../services/firestore.js";
 import { fetchSpotifyAccessToken } from "../services/token.js";
 import { fetchRecentlyPlayed } from "../services/spotify.js";
 import type {
   IngestStats,
   ListenSnapshot,
-  SpotifyAlbumImage,
   SpotifyRecentlyPlayedItem,
-  TrackSnapshot,
   UserIngestTarget
 } from "../types.js";
 
@@ -107,9 +104,6 @@ export const processSingleUser = async (user: UserIngestTarget) => {
     .map((item) => toListenSnapshot(uid, item))
     .sort((a, b) => a.playedAtEpochMs - b.playedAtEpochMs);
 
-  const tracks = buildTrackSnapshots(items);
-
-  await upsertTracks(tracks);
   await upsertListens(uid, snapshots);
 
   const newestPlayedAt = snapshots.at(-1)?.playedAtEpochMs ?? afterCursor;
@@ -147,38 +141,4 @@ const toListenSnapshot = (
   };
 };
 
-const buildTrackSnapshots = (
-  items: SpotifyRecentlyPlayedItem[]
-): TrackSnapshot[] => {
-  const map = new Map<string, TrackSnapshot>();
 
-  items.forEach((item) => {
-    const track = item.track;
-    if (map.has(track.id)) return;
-
-    map.set(track.id, {
-      trackId: track.id,
-      trackName: track.name,
-      artistNames: track.artists.map((artist) => artist.name),
-      albumName: track.album.name,
-      durationMs: track.duration_ms,
-      albumImages: toAlbumImages(track.album.images)
-    });
-  });
-
-  return Array.from(map.values());
-};
-
-const toAlbumImages = (images?: SpotifyAlbumImage[]) => {
-  if (!images?.length) return null;
-
-  const sorted = [...images].sort(
-    (a, b) => (b.width ?? 0) - (a.width ?? 0)
-  );
-
-  const large = sorted[0]?.url ?? null;
-  const medium = sorted[1]?.url ?? null;
-  const small = sorted.at(-1)?.url ?? null;
-
-  return { small, medium, large };
-};

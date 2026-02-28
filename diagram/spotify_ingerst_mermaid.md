@@ -1,12 +1,10 @@
 ```mermaid
 classDiagram
     class jobs.ingest{
-        -TLL_DAYS
+        -TTL_DAYS
         +runHourlyIngest()
         +processSingleUser()
         -toListenSnapshot()
-        -buildTrackSnapshots()
-        -toAlbumImages()
     }
     class lib.rate-limit{
         +createUserQueue()
@@ -14,7 +12,6 @@ classDiagram
     class services.firestore{
         -USERS_COLLECTION
         -LISTENS_SUBCOLLECTION
-        -TRACKS_COLLECTION
         -META_COLLECTION
         -META_DOC_ID
         -ensureInitialized()
@@ -22,17 +19,13 @@ classDiagram
         +getIngestMetadata()
         +updateIngestMetadata()
         +upsertListens
-        +upsertTracks()
         +flushWrites()
     }
     class services.spotify{
         -RECENTLY_PLAYED_ENDPOINT
-        -AUDIO_FEATURES_ENDPOINT
         -spotifyClient
         -fetchPage()
         +fetchRecentlyPlayed()
-        -chunk()
-        +fetchAudioFeaturesByIds()
     }
     class services.token{
         -tokenResponseSchema

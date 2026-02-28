@@ -11,20 +11,7 @@ export interface ListenSnapshot {
   expireAt: Date;
 }
 
-export interface AlbumImages {
-  small: string | null;
-  medium: string | null;
-  large: string | null;
-}
 
-export interface TrackSnapshot {
-  trackId: string;
-  trackName: string;
-  artistNames: string[];
-  albumName: string;
-  durationMs: number;
-  albumImages: AlbumImages | null;
-}
 
 export interface IngestMetadata {
   lastFetchedAt?: number;
