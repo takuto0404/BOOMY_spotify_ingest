@@ -1,4 +1,8 @@
-import * as functions from "firebase-functions";
+import {
+  type CallableRequest,
+  HttpsError,
+  onCall
+} from "firebase-functions/v2/https";
 
 import { logger } from "../lib/logging.js";
 import { toHttpsError } from "./errors.js";
@@ -17,26 +21,27 @@ import {
   sendFriendRequest as sendFriendRequestService
 } from "./service.js";
 
-const runtime = functions.region("asia-northeast1").runWith({
+const runtime = {
+  region: "asia-northeast1",
   timeoutSeconds: 60,
-  memory: "256MB"
-});
+  memory: "256MiB" as const
+};
 
-const ensureAuthenticated = (context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
+const ensureAuthenticated = (request: CallableRequest<unknown>) => {
+  if (!request.auth) {
+    throw new HttpsError(
       "unauthenticated",
       "User must be authenticated"
     );
   }
-  return context.auth.uid;
+  return request.auth.uid;
 };
 
-export const sendFriendRequest = runtime.https.onCall(async (data, context) => {
-  const actorUid = ensureAuthenticated(context);
-  const parsed = sendFriendRequestInputSchema.safeParse(data);
+export const sendFriendRequest = onCall(runtime, async (request) => {
+  const actorUid = ensureAuthenticated(request);
+  const parsed = sendFriendRequestInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid toUserId");
+    throw new HttpsError("invalid-argument", "Invalid toUserId");
   }
 
   try {
@@ -52,11 +57,11 @@ export const sendFriendRequest = runtime.https.onCall(async (data, context) => {
   }
 });
 
-export const acceptFriendRequest = runtime.https.onCall(async (data, context) => {
-  const actorUid = ensureAuthenticated(context);
-  const parsed = requestIdInputSchema.safeParse(data);
+export const acceptFriendRequest = onCall(runtime, async (request) => {
+  const actorUid = ensureAuthenticated(request);
+  const parsed = requestIdInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid requestId");
+    throw new HttpsError("invalid-argument", "Invalid requestId");
   }
 
   try {
@@ -75,11 +80,11 @@ export const acceptFriendRequest = runtime.https.onCall(async (data, context) =>
   }
 });
 
-export const cancelFriendRequest = runtime.https.onCall(async (data, context) => {
-  const actorUid = ensureAuthenticated(context);
-  const parsed = requestIdInputSchema.safeParse(data);
+export const cancelFriendRequest = onCall(runtime, async (request) => {
+  const actorUid = ensureAuthenticated(request);
+  const parsed = requestIdInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid requestId");
+    throw new HttpsError("invalid-argument", "Invalid requestId");
   }
 
   try {
@@ -98,11 +103,11 @@ export const cancelFriendRequest = runtime.https.onCall(async (data, context) =>
   }
 });
 
-export const rejectFriendRequest = runtime.https.onCall(async (data, context) => {
-  const actorUid = ensureAuthenticated(context);
-  const parsed = requestIdInputSchema.safeParse(data);
+export const rejectFriendRequest = onCall(runtime, async (request) => {
+  const actorUid = ensureAuthenticated(request);
+  const parsed = requestIdInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid requestId");
+    throw new HttpsError("invalid-argument", "Invalid requestId");
   }
 
   try {
@@ -121,11 +126,11 @@ export const rejectFriendRequest = runtime.https.onCall(async (data, context) =>
   }
 });
 
-export const removeFriend = runtime.https.onCall(async (data, context) => {
-  const actorUid = ensureAuthenticated(context);
-  const parsed = removeFriendInputSchema.safeParse(data);
+export const removeFriend = onCall(runtime, async (request) => {
+  const actorUid = ensureAuthenticated(request);
+  const parsed = removeFriendInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid friendUserId");
+    throw new HttpsError("invalid-argument", "Invalid friendUserId");
   }
 
   try {
@@ -144,11 +149,11 @@ export const removeFriend = runtime.https.onCall(async (data, context) => {
   }
 });
 
-export const getUserProfileById = runtime.https.onCall(async (data, context) => {
-  ensureAuthenticated(context);
-  const parsed = getUserProfileByIdInputSchema.safeParse(data);
+export const getUserProfileById = onCall(runtime, async (request) => {
+  ensureAuthenticated(request);
+  const parsed = getUserProfileByIdInputSchema.safeParse(request.data);
   if (!parsed.success) {
-    throw new functions.https.HttpsError("invalid-argument", "Invalid userId");
+    throw new HttpsError("invalid-argument", "Invalid userId");
   }
 
   try {

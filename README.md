@@ -15,11 +15,9 @@ graph TD
     subgraph Cloud Functions
         Ingest --> Logic[共通インジェストロジック]
         Trigger --> Logic
-        Logic -->|トークン取得| Broker[ingestTokenBroker]
     end
     
-    Broker -->|Refresh Token| Firestore[(Firestore)]
-    Broker -->|Access Token| Spotify[Spotify API]
+    Logic -->|Refresh Token取得| Firestore[(Firestore)]
     Logic -->|再生履歴取得| Spotify
     Logic -->|データ保存| Firestore
 ```
@@ -56,7 +54,6 @@ firebase login
 
 | 変数名 | 説明 |
 |---|---|
-| `TOKEN_BROKER_URL` | トークン発行関数のURL（デプロイ後に確定しますが、通常は `https://[region]-[project].cloudfunctions.net/ingestTokenBroker`） |
 | `SPOTIFY_CLIENT_ID` | Spotify Developer Dashboard で取得した Client ID |
 | `SPOTIFY_CLIENT_SECRET` | Spotify Developer Dashboard で取得した Client Secret |
 | `DEFAULT_USER_CONCURRENCY` | 同時に処理するユーザー数（デフォルト: 5） |
@@ -90,7 +87,6 @@ npm run deploy
 |---|---|---|
 | `scheduledIngest` | Cloud Scheduler (毎時) | 全ユーザーのインジェストを定期実行 |
 | `triggerUserIngest` | HTTPS Callable | クライアントから特定のユーザーのインジェストを手動実行（要認証） |
-| `ingestTokenBroker` | HTTPS Request | 内部利用: Firestoreのリフレッシュトークンをアクセストークンに変換 |
 
 ## 開発・テスト
 

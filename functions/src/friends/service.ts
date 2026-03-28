@@ -7,15 +7,15 @@ const USERS_COLLECTION = "users";
 const FRIENDS_SUBCOLLECTION = "friends";
 const FRIEND_REQUESTS_COLLECTION = "friendRequests";
 
-const db = getFirestore();
+const db = () => getFirestore();
 
-const userRef = (uid: string) => db.collection(USERS_COLLECTION).doc(uid);
+const userRef = (uid: string) => db().collection(USERS_COLLECTION).doc(uid);
 const friendRef = (uid: string, friendUid: string) =>
   userRef(uid).collection(FRIENDS_SUBCOLLECTION).doc(friendUid);
 const friendRequestRef = (requestId: string) =>
-  db.collection(FRIEND_REQUESTS_COLLECTION).doc(requestId);
+  db().collection(FRIEND_REQUESTS_COLLECTION).doc(requestId);
 const friendRequestPairQuery = (fromUserId: string, toUserId: string) =>
-  db
+  db()
     .collection(FRIEND_REQUESTS_COLLECTION)
     .where("fromUserId", "==", fromUserId)
     .where("toUserId", "==", toUserId);
@@ -46,7 +46,7 @@ export const sendFriendRequest = async (fromUserId: string, toUserId: string) =>
     throw new FriendAppError("invalid_state", "Cannot send friend request to yourself");
   }
 
-  return db.runTransaction(async (tx) => {
+  return db().runTransaction(async (tx) => {
     const [toUserSnap, existingFriendSnap, reverseFriendSnap, forwardReqSnap, reverseReqSnap] =
       await Promise.all([
         tx.get(userRef(toUserId)),
@@ -68,7 +68,7 @@ export const sendFriendRequest = async (fromUserId: string, toUserId: string) =>
       throw new FriendAppError("request_exists", "A pending friend request already exists");
     }
 
-    const requestDocRef = db.collection(FRIEND_REQUESTS_COLLECTION).doc();
+    const requestDocRef = db().collection(FRIEND_REQUESTS_COLLECTION).doc();
     tx.set(requestDocRef, {
       fromUserId,
       toUserId,
@@ -85,7 +85,7 @@ export const sendFriendRequest = async (fromUserId: string, toUserId: string) =>
 };
 
 export const acceptFriendRequest = async (actorUid: string, requestId: string) =>
-  db.runTransaction(async (tx) => {
+  db().runTransaction(async (tx) => {
     const requestSnap = await tx.get(friendRequestRef(requestId));
     if (!requestSnap.exists) {
       throw new FriendAppError("not_found", "Friend request was not found");
@@ -130,7 +130,7 @@ export const acceptFriendRequest = async (actorUid: string, requestId: string) =
   });
 
 export const cancelFriendRequest = async (actorUid: string, requestId: string) =>
-  db.runTransaction(async (tx) => {
+  db().runTransaction(async (tx) => {
     const requestSnap = await tx.get(friendRequestRef(requestId));
     if (!requestSnap.exists) {
       throw new FriendAppError("not_found", "Friend request was not found");
@@ -155,7 +155,7 @@ export const cancelFriendRequest = async (actorUid: string, requestId: string) =
   });
 
 export const rejectFriendRequest = async (actorUid: string, requestId: string) =>
-  db.runTransaction(async (tx) => {
+  db().runTransaction(async (tx) => {
     const requestSnap = await tx.get(friendRequestRef(requestId));
     if (!requestSnap.exists) {
       throw new FriendAppError("not_found", "Friend request was not found");
@@ -177,7 +177,7 @@ export const rejectFriendRequest = async (actorUid: string, requestId: string) =
   });
 
 export const removeFriend = async (actorUid: string, friendUserId: string) =>
-  db.runTransaction(async (tx) => {
+  db().runTransaction(async (tx) => {
     if (actorUid === friendUserId) {
       throw new FriendAppError("invalid_state", "Cannot remove yourself from friends");
     }

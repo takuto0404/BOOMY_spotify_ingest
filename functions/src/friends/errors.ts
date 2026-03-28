@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import { type FunctionsErrorCode, HttpsError } from "firebase-functions/v2/https";
 
 export type FriendAppErrorCode =
   | "not_found"
@@ -9,7 +9,7 @@ export type FriendAppErrorCode =
 
 const toHttpsCode = (
   code: FriendAppErrorCode
-): functions.https.FunctionsErrorCode => {
+): FunctionsErrorCode => {
   switch (code) {
     case "not_found":
       return "not-found";
@@ -34,18 +34,18 @@ export class FriendAppError extends Error {
   }
 }
 
-export const toHttpsError = (error: unknown): functions.https.HttpsError => {
-  if (error instanceof functions.https.HttpsError) {
+export const toHttpsError = (error: unknown): HttpsError => {
+  if (error instanceof HttpsError) {
     return error;
   }
 
   if (error instanceof FriendAppError) {
-    return new functions.https.HttpsError(
+    return new HttpsError(
       toHttpsCode(error.code),
       error.message,
       { code: error.code }
     );
   }
 
-  return new functions.https.HttpsError("internal", "Unexpected internal error");
+  return new HttpsError("internal", "Unexpected internal error");
 };

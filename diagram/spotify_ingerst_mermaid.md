@@ -36,9 +36,6 @@ classDiagram
         -configCache
         +getConfig()
     }
-    class ingestTokenBroker{
-        +ingestTokenBroker()
-    }
     class scheduledIngest{
         +scheduledIngest()
     }
@@ -53,6 +50,5 @@ classDiagram
     jobs.ingest --> services.spotify
     services.spotify --> config
     scheduledIngest --> jobs.ingest
-    ingestTokenBroker --> jobs.ingest
     triggerUserIngest --> jobs.ingest
 ```
