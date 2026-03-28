@@ -1,0 +1,84 @@
+{
+  "id": "friends-cloud-functions",
+  "started": "2026-03-14T18:25:37+09:00",
+  "lastUpdated": "2026-03-14T18:25:37+09:00",
+  "status": "active",
+  "phase": "discovery",
+  "planning_methodology": {
+    "decomposition_complete": false,
+    "dependencies_mapped": false,
+    "branches_explored": [],
+    "current_branch": null,
+    "iterations": 0,
+    "completeness_verified": false
+  },
+  "progress": {
+    "discovery": { "answered": 0, "total": 5 },
+    "detail": { "answered": 0, "total": 0 }
+  },
+  "contextFiles": [
+    "README.md",
+    "firebase.json",
+    "package.json",
+    "functions/tsconfig.json",
+    "functions/src/index.ts",
+    "functions/src/triggerUserIngest.ts",
+    "functions/src/scheduledIngest.ts",
+    "functions/src/ingestTokenBroker.ts",
+    "functions/src/jobs/ingest.ts",
+    "functions/src/services/firestore.ts",
+    "functions/src/services/token.ts",
+    "functions/src/services/spotify.ts",
+    "functions/src/config.ts",
+    "functions/src/lib/rate-limit.ts",
+    "functions/src/lib/logging.ts",
+    "functions/src/types.ts"
+  ],
+  "relatedFeatures": [],
+  "continuation_id": "requirements-thread-id",
+  "revision_history": [],
+  "investigation_cache": {
+    "investigated_files": [
+      "README.md",
+      "firebase.json",
+      "package.json",
+      "functions/tsconfig.json",
+      "functions/src/index.ts",
+      "functions/src/triggerUserIngest.ts",
+      "functions/src/scheduledIngest.ts",
+      "functions/src/ingestTokenBroker.ts",
+      "functions/src/jobs/ingest.ts",
+      "functions/src/services/firestore.ts",
+      "functions/src/services/token.ts",
+      "functions/src/services/spotify.ts",
+      "functions/src/config.ts",
+      "functions/src/lib/rate-limit.ts",
+      "functions/src/lib/logging.ts",
+      "functions/src/types.ts"
+    ],
+    "investigated_patterns": [
+      "firebase-functions v1 style: region/runWith + https.onCall/https.onRequest/pubsub.schedule",
+      "firebase-admin Firestore usage with bulkWriter and serverTimestamp",
+      "config via zod + env vars in functions/src/config.ts"
+    ],
+    "investigated_apis": [
+      "functions.https.onCall",
+      "functions.https.onRequest",
+      "functions.pubsub.schedule",
+      "firebase-admin Firestore (getFirestore, FieldValue, Timestamp, BulkWriter)",
+      "axios client usage",
+      "p-queue for concurrency",
+      "p-retry for retries",
+      "zod for validation"
+    ],
+    "known_dependencies": {
+      "firebase-functions": "^5.1.1",
+      "firebase-admin": "^12.1.0",
+      "axios": "^1.6.8",
+      "zod": "^3.22.4",
+      "p-queue": "^8.0.1",
+      "p-retry": "^6.2.0",
+      "date-fns": "^3.6.0"
+    }
+  }
+}

@@ -15,3 +15,11 @@ initializeApp();
 export { scheduledIngest } from "./scheduledIngest.js";
 export { triggerUserIngest } from "./triggerUserIngest.js";
 export { ingestTokenBroker } from "./ingestTokenBroker.js";
+export {
+  sendFriendRequest,
+  acceptFriendRequest,
+  cancelFriendRequest,
+  rejectFriendRequest,
+  removeFriend,
+  getUserProfileById
+} from "./friends/callables.js";
