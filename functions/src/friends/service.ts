@@ -1,5 +1,6 @@
 import { FieldValue, getFirestore, Transaction } from "firebase-admin/firestore";
 
+import { logger } from "../lib/logging.js";
 import { FriendAppError } from "./errors.js";
 import type { FriendRequestDoc, UserProfileDoc } from "./schema.js";
 
@@ -19,6 +20,43 @@ const friendRequestPairQuery = (fromUserId: string, toUserId: string) =>
     .collection(FRIEND_REQUESTS_COLLECTION)
     .where("fromUserId", "==", fromUserId)
     .where("toUserId", "==", toUserId);
+
+const ensureUserDoc = async (uid: string) => {
+  const ref = userRef(uid);
+  const snap = await ref.get();
+
+  if (snap.exists) {
+    return snap;
+  }
+
+  const subcollections = await ref.listCollections();
+  if (!subcollections.length) {
+    throw new FriendAppError("not_found", "User profile was not found");
+  }
+
+  await ref.set(
+    {
+      userId: uid,
+      userName: "",
+      displayName: "",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  logger.warn("Backfilled missing user root document", {
+    userId: uid,
+    subcollections: subcollections.map((collection) => collection.id).sort()
+  });
+
+  const backfilledSnap = await ref.get();
+  if (!backfilledSnap.exists) {
+    throw new FriendAppError("not_found", "User profile was not found");
+  }
+
+  return backfilledSnap;
+};
 
 const hasPendingRequest = (docs: FirebaseFirestore.QueryDocumentSnapshot[]) =>
   docs.some((doc) => {
@@ -46,19 +84,16 @@ export const sendFriendRequest = async (fromUserId: string, toUserId: string) =>
     throw new FriendAppError("invalid_state", "Cannot send friend request to yourself");
   }
 
+  await ensureUserDoc(toUserId);
+
   return db().runTransaction(async (tx) => {
-    const [toUserSnap, existingFriendSnap, reverseFriendSnap, forwardReqSnap, reverseReqSnap] =
+    const [existingFriendSnap, reverseFriendSnap, forwardReqSnap, reverseReqSnap] =
       await Promise.all([
-        tx.get(userRef(toUserId)),
         tx.get(friendRef(fromUserId, toUserId)),
         tx.get(friendRef(toUserId, fromUserId)),
         tx.get(friendRequestPairQuery(fromUserId, toUserId)),
         tx.get(friendRequestPairQuery(toUserId, fromUserId))
       ]);
-
-    if (!toUserSnap.exists) {
-      throw new FriendAppError("not_found", "Target user was not found");
-    }
 
     if (existingFriendSnap.exists || reverseFriendSnap.exists) {
       throw new FriendAppError("already_friends", "Users are already friends");
@@ -177,14 +212,10 @@ export const rejectFriendRequest = async (actorUid: string, requestId: string) =
   });
 
 export const removeFriend = async (actorUid: string, friendUserId: string) =>
-  db().runTransaction(async (tx) => {
+  ensureUserDoc(friendUserId).then(() =>
+    db().runTransaction(async (tx) => {
     if (actorUid === friendUserId) {
       throw new FriendAppError("invalid_state", "Cannot remove yourself from friends");
-    }
-
-    const friendUserSnap = await tx.get(userRef(friendUserId));
-    if (!friendUserSnap.exists) {
-      throw new FriendAppError("not_found", "Friend user was not found");
     }
 
     tx.delete(friendRef(actorUid, friendUserId));
@@ -199,13 +230,11 @@ export const removeFriend = async (actorUid: string, friendUserId: string) =>
     cancelRequestIfNeeded(tx, reverseReqSnap.docs);
 
     return { status: "canceled" as const };
-  });
+    })
+  );
 
 export const getUserProfileById = async (userId: string) => {
-  const userSnap = await userRef(userId).get();
-  if (!userSnap.exists) {
-    throw new FriendAppError("not_found", "User profile was not found");
-  }
+  const userSnap = await ensureUserDoc(userId);
 
   const userData = userSnap.data() as Partial<UserProfileDoc> | undefined;
 

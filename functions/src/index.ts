@@ -13,6 +13,7 @@ initializeApp();
 
 export { scheduledIngest } from "./scheduledIngest.js";
 export { triggerUserIngest } from "./triggerUserIngest.js";
+export { upsertUserProfile } from "./upsertUserProfile.js";
 export {
   sendFriendRequest,
   acceptFriendRequest,

@@ -22,7 +22,7 @@ import {
 } from "./service.js";
 
 const runtime = {
-  region: "asia-northeast1",
+  region: "us-central1",
   timeoutSeconds: 60,
   memory: "256MiB" as const
 };

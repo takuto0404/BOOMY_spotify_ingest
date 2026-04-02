@@ -9,7 +9,7 @@ import type { UserIngestTarget } from "./types.js";
  */
 export const triggerUserIngest = onCall(
   {
-    region: "asia-northeast1",
+    region: "us-central1",
     timeoutSeconds: 60,
     memory: "256MiB"
   },

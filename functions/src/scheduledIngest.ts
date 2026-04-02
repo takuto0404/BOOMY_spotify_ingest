@@ -8,7 +8,7 @@ import { logger as sharedLogger } from "./lib/logging.js";
  */
 export const scheduledIngest = onSchedule(
   {
-    region: "asia-northeast1",
+    region: "us-central1",
     timeoutSeconds: 540,
     memory: "512MiB",
     schedule: "every 1 hours",
